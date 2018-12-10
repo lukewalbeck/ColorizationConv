@@ -964,6 +964,9 @@ def export_model(module_spec, class_count, saved_model_dir):
         legacy_init_op=tf.group(tf.tables_initializer(), name='legacy_init_op')
     )
 
+def setFlags(newFlags):
+  global FLAGS
+  FLAGS = newFlags
 
 def main(_):
   # Needed to make sure the logging output is visible.
@@ -973,6 +976,8 @@ def main(_):
   if not FLAGS.image_dir:
     tf.logging.error('Must set flag --image_dir.')
     return -1
+
+  print("IMAGES:%s",(FLAGS.image_dir) )
 
   # Prepare necessary directories that can be used during training
   prepare_file_system()
