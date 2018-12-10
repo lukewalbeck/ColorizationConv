@@ -5,68 +5,6 @@ import skimage.color as color
 import skimage.io as io
 import numpy as np
 
-
-
-def train(data):
-    x = tf.placeholder(tf.float32, shape = [None, 256, 256, 1], name = 'x')
-    ytrue = tf.placeholder(tf.float32, shape = [None, 256, 256, 2], name = 'ytrue')
-    loss = tf.losses.mean_squared_error(labels = ytrue, predictions = getColorization(x))
-    cost = tf.reduce_mean(loss)
-    optimizer = tf.train.AdamOptimizer(1e-4).minimize(cost)
-    saver = tf.train.Saver()
-    with tf.Session() as session:
-        session.run(tf.global_variables_initializer())
-        print('All variables Initialized')
-        for epoch in range(config.NUM_EPOCHS):
-            avg_cost = 0
-            for batch in range(int(data.size/config.BATCH_SIZE)):
-                batchX, batchY, _ = data.generate_batch()
-                feed_dict = {x: batchX, ytrue: batchY}
-                loss_val = session.run(
-                    optimizer, feed_dict=feed_dict)
-                print("batch:", batch, " loss: ", loss_val)
-                avg_cost += loss_val / int(data.size/config.BATCH_SIZE)
-            print("Epoch:", (epoch + 1), "cost =",
-                  "{:.5f}".format(avg_cost))
-
-        save_path = saver.save(session, os.path.join(
-            config.MODEL_DIR, "model" + str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
-        print("Model saved in path: %s" % save_path)
-
-
-def test(data):
-    x = tf.placeholder(tf.float32, shape = [None, 256, 256, 1], name = 'x')
-    ytrue = tf.placeholder(tf.float32, shape = [None, 256, 256, 2], name = 'ytrue')
-    saver = tf.train.Saver()
-    with tf.Session() as session:
-        saver.restore(session, os.path.join(config.MODEL_DIR, "model" +
-                                            str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
-        avg_cost = 0
-        total_batch = int(data.size/config.BATCH_SIZE)
-        for _ in range(total_batch):
-            batchX, batchY, filelist = data.generate_batch()           
-            output = session.run(getColorization(x), feed_dict = {x: batchX, ytrue: batchY})*128
-            image = np.zeros([256, 256, 3])
-            image[:,:,0]=batchX[0][:,:,0]
-            image[:,:,1:]=output[0]
-            image = color.lab2rgb(image)
-            io.imsave("test.jpg", image)
-
-def create_weights(shape):
-  return tf.Variable(tf.truncated_normal(shape, stddev=0.1))
-
-def create_bias(size):
-  return tf.Variable(tf.constant(0.1, shape = [size]))
-
-def convolution(inputs, num_channels, filter_size, num_filters):
-  weights = create_weights(shape = [filter_size, filter_size, num_channels, num_filters])
-  bias = create_bias(num_filters)
-  
-  ## convolutional layer
-  layer = tf.nn.conv2d(input = inputs, filter = weights, strides= [1, 1, 1, 1], padding = 'SAME') + bias
-  layer = tf.nn.tanh(layer)
-  return layer
-
 def getColorization(image):
     conv1 = convolution(image, 1, 3, 3)
     max1 = maxpool(conv1, 2, 2)
@@ -94,6 +32,80 @@ def getColorization(image):
     upsample6 = upsampling(conv12)
     conv13 = convolution(upsample6, 8, 3, 2)
     return conv13
+
+def train(data):
+  
+    x = tf.placeholder(tf.float32, shape = [config.BATCH_SIZE, config.IMAGE_SIZE, config.IMAGE_SIZE, 1], name = 'x')
+    ytrue = tf.placeholder(tf.float32, shape = [config.BATCH_SIZE, config.IMAGE_SIZE, config.IMAGE_SIZE, 2], name = 'ytrue')
+
+    #construct model
+    output = getColorization(x)
+
+    #define loss
+    #loss = tf.losses.mean_squared_error(labels = ytrue, predictions = output)
+    #cost = tf.reduce_mean(tf.squared_difference(ytrue, output))
+    loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=ytrue))
+    optimizer = tf.train.AdamOptimizer(1e-4).minimize(loss_op)
+
+    correct_pred = tf.equal(tf.argmax(output, 1), tf.argmax(ytrue, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+
+    saver = tf.train.Saver()
+    with tf.Session() as session:
+        session.run(tf.global_variables_initializer())
+        print('All variables Initialized')
+        for epoch in range(config.NUM_EPOCHS):
+            avg_cost = 0
+            for batch in range(int(data.size/config.BATCH_SIZE)):
+                batchX, batchY, _ = data.generate_batch()
+                session.run(optimizer, feed_dict={x: batchX, ytrue: batchY})
+                if epoch % 10 == 0 or epoch == 1:
+                  acc, loss = session.run([accuracy, loss_op], feed_dict={x: batchX, ytrue: batchY})                
+                  print("Step " + str(epoch) + ", Minibatch Loss= " +  "{:.4f}".format(loss) + ", Training Accuracy= " + "{:.3f}".format(acc))
+
+                #loss_val = session.run(optimizer, feed_dict={x: batchX, ytrue: batchY})
+                #avg_cost += loss_val / int(data.size/config.BATCH_SIZE)
+                #print("Epoch:", (epoch + 1), "cost =", "{:.5f}".format(avg_cost))
+
+
+            save_path = saver.save(session, os.path.join(config.MODEL_DIR, "model" + str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
+        print("Model saved in path: %s" % save_path)
+
+
+def test(data):
+    x = tf.placeholder(tf.float32, shape = [None, config.IMAGE_SIZE, config.IMAGE_SIZE, 1], name = 'x')
+    ytrue = tf.placeholder(tf.float32, shape = [None, config.IMAGE_SIZE, config.IMAGE_SIZE, 2], name = 'ytrue')
+
+    saver = tf.train.Saver()
+    with tf.Session() as session:
+        saver.restore(session, os.path.join(config.MODEL_DIR, "model" + str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
+        avg_cost = 0
+        total_batch = int(data.size/config.BATCH_SIZE)
+        for _ in range(total_batch):
+            batchX, batchY, filelist = data.generate_batch() 
+            print(batchX)
+            print(batchY)   
+            output = session.run(getColorization(x), feed_dict = {x: batchX, ytrue: batchY})*128
+            image = np.zeros([config.IMAGE_SIZE, config.IMAGE_SIZE, 3])
+            image[:,:,0]=batchX[0][:,:,0]
+            image[:,:,1:]=output[0]
+            image = color.lab2rgb(image)
+            io.imsave("test.jpg", image)
+
+def create_weights(shape):
+  return tf.Variable(tf.truncated_normal(shape, stddev=0.1))
+
+def create_bias(size):
+  return tf.Variable(tf.constant(0.1, shape = [size]))
+
+def convolution(inputs, num_channels, filter_size, num_filters):
+  weights = create_weights(shape = [filter_size, filter_size, num_channels, num_filters])
+  bias = create_bias(num_filters)
+  
+  ## convolutional layer
+  layer = tf.nn.conv2d(input = inputs, filter = weights, strides= [1, 1, 1, 1], padding = 'SAME') + bias
+  layer = tf.nn.tanh(layer)
+  return layer
 
 
 def maxpool(inputs, kernel, stride):

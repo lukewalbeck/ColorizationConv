@@ -1,21 +1,27 @@
 import tensorflow as tf
 import config
+import numpy as np
+import skimage.color as color
+import skimage.io as io
 
 def test(data):
-    x = tf.placeholder(tf.float32, shape = [None, 256, 256, 1], name = 'x')
-    ytrue = tf.placeholder(tf.float32, shape = [None, 256, 256, 2], name = 'ytrue')
-    saver = tf.train.Saver()
-    with tf.Session() as session:
-        #saver.restore(session, os.path.join(config.MODEL_DIR, "model" +
-        #                                    str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
 
-        avg_cost = 0
+    #load graph
+    graph = tf.Graph()
+    graph_def = tf.GraphDef()
+    with open(config.MODEL_DIR, "rb") as f:
+        graph_def.ParseFromString(f.read())
+    with graph.as_default():
+        tf.import_graph_def(graph_def)
+        x = tf.placeholder(tf.float32, shape = [config.BATCH_SIZE, config.IMAGE_SIZE, config.IMAGE_SIZE, 1], name = 'x')
+
+    #classify sample
+    with tf.Session(graph = graph) as session:
         total_batch = int(data.size/config.BATCH_SIZE)
         for _ in range(total_batch):
-            batchX, batchY, filelist = data.generate_batch()           
-            output = session.run(tf.import_graph_def(config.MODEL_DIR), feed_dict = {x: batchX, ytrue: batchY})*128
-            image = np.zeros([256, 256, 3])
-            image[:,:,0]=batchX[0][:,:,0]
-            image[:,:,1:]=output[0]
-            image = color.lab2rgb(image)
-            io.imsave("test.jpg", image)
+            batchX, batchY, filelist = data.generate_batch()   
+            print(filelist) 
+            output = session.run(graph.get_operation_by_name("import/final_result").outputs[0], 
+                feed_dict = {graph.get_operation_by_name("import/Placeholder").outputs[0]: batchX})
+            print(output)
+    
