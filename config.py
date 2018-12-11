@@ -30,8 +30,6 @@ DEFAULT_COLORIZATION_IMAGE_SIZE = 320
 
 class Config():
 
-    
-
     def __init__(self, flagsar):    #Passed in the format : [data_dir, save_dir, batch_sizes, num_epochs]
         self.data_dir = flagsar[0]        #Directory of data (contains folders of images, for testing, training, or classifying)
         self.save_dir = flagsar[1]        #Directory to save files, this is where models will be

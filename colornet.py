@@ -32,6 +32,7 @@ def batch_create(src):
     INPUT_DIR = src
     input = []
     output = []
+    print(src)
     for filename in os.listdir(INPUT_DIR):
         filesrc = os.path.join(INPUT_DIR, filename)
         image = img_to_array(load_img(filesrc, target_size=(200,200))) / 255

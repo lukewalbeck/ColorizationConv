@@ -13,7 +13,8 @@ import colornet
 FLAGS = None
 
 def main(_):
-    colornet.run(config.Config(FLAGS.save_dir, FLAGS.colorize_batch_size, FLAGS.num_epochs))
+    cf = config.Config([FLAGS.data_dir, FLAGS.save_dir, FLAGS.colorize_batch_size, FLAGS.num_epochs])
+    colornet.run(cf)
 
 
 if __name__ == "__main__":
@@ -69,6 +70,12 @@ if __name__ == "__main__":
         type=str,
         default="",
         help='Data directory.'
+    ) 
+    parser.add_argument(
+        '--save_dir',
+        type=str,
+        default="",
+        help='Save directory.'
     ) 
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
