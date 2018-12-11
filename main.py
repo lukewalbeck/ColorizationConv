@@ -6,26 +6,28 @@ import argparse
 import sys
 import tensorflow as tf
 import colornet
-import config as config
+import config 
 import classifier
 
 FLAGS = None
 
 def main(_):
-    config.set_cofig([FLAGS.test_dir, FLAGS.train_dir, FLAGS.model_dir, FLAGS.num_epochs, FLAGS.batch_size, FLAGS.classify_dir, FLAGS.data_dir])
+    #[data_dir, save_dir, batch_size, num_epochs]
+    #config.set_cofig([FLAGS.test_dir, FLAGS.train_dir, FLAGS.model_dir, FLAGS.num_epochs, FLAGS.batch_size, FLAGS.classify_dir, FLAGS.data_dir])
+    #train_data = data.DATA(config.TRAIN_DIR)
+    batch_sizes = [FLAGS.classify_batch_size, FLAGS.colorize_batch_size]
+    colorization_config = config.Config([FLAGS.data_dir, FLAGS.model_dir, batch_sizes, FLAGS.num_epochs])
 
-    # READ DATA
-    train_data = data.DATA(config.TRAIN_DIR)
-    #classifier.test(train_data)
-    #colornet.train(train_data)
-    print("Train Data Loaded")
-    # TRAIN MODEL
-    #colornet.train(train_data)
-    print("Model Trained")
-    # TEST MODEL
-    test_data = data.DATA(config.TRAIN_DIR)
-    print("Test Data Loaded")
-    colornet.test(test_data)
+    #classify 
+    classifier.test(colorization_config, "final_graph.pb")
+    print("\n\nFinished Classifying\n\n")
+
+    #train colorization
+    colornet.train(colorization_config)
+    print("\n\nFinished Training\n\n")
+
+    #test colorization
+    #colornet.test(test_data)
     print("Image Reconstruction Done")
 
 if __name__ == "__main__":
@@ -40,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--train_dir',
         type=str,
-        default='',
+        default= None,
         help='Path to folders of training images.'
     )
 
@@ -54,26 +56,32 @@ if __name__ == "__main__":
     parser.add_argument(
         '--num_epochs',
         type=int,
-        default=config.NUM_EPOCHS,
+        default=100,
         help='Number of epochs to run.'
     )
 
     parser.add_argument(
-        '--batch_size',
+        '--classify_batch_size',
         type=int,
-        default=config.BATCH_SIZE,
-        help='Batch size.'
+        default=1,
+        help='Batch size for classification.'
+    )
+    parser.add_argument(
+        '--colorize_batch_size',
+        type=int,
+        default=1,
+        help='Batch size for colorization.'
     )
     parser.add_argument(
         '--classify_dir',
         type=str,
-        default=config.CLASSIFY_DIR,
+        default="",
         help='Classify directory.'
     )   
     parser.add_argument(
         '--data_dir',
         type=str,
-        default=config.DATA_DIR,
+        default="",
         help='Data directory.'
     ) 
     FLAGS, unparsed = parser.parse_known_args()

@@ -4,6 +4,8 @@ import config
 import skimage.color as color
 import skimage.io as io
 import numpy as np
+import sys
+import cv2
 
 def getColorization(image):
     conv1 = convolution(image, 1, 3, 3)
@@ -33,10 +35,20 @@ def getColorization(image):
     conv13 = convolution(upsample6, 8, 3, 2)
     return conv13
 
-def train(data):
+def train(config):
   
-    x = tf.placeholder(tf.float32, shape = [config.BATCH_SIZE, config.IMAGE_SIZE, config.IMAGE_SIZE, 1], name = 'x')
-    ytrue = tf.placeholder(tf.float32, shape = [config.BATCH_SIZE, config.IMAGE_SIZE, config.IMAGE_SIZE, 2], name = 'ytrue')
+    #verify training can run
+    if(config.train_dir == None or config.train_data == None):
+      print("Error: No training data")
+      sys.exit(-1)
+
+    #parameters
+    num_epochs = config.train_data.num_epochs
+    batch_size = config.train_data.batch_size
+    img_size = config.train_data.image_size
+
+    x = tf.placeholder(tf.float32, shape = [batch_size, img_size, img_size, 1], name = 'x')
+    ytrue = tf.placeholder(tf.float32, shape = [batch_size, img_size, img_size, 2], name = 'ytrue')
 
     #construct model
     output = getColorization(x)
@@ -54,10 +66,10 @@ def train(data):
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
         print('All variables Initialized')
-        for epoch in range(config.NUM_EPOCHS):
+        for epoch in range(num_epochs):
             avg_cost = 0
-            for batch in range(int(data.size/config.BATCH_SIZE)):
-                batchX, batchY, _ = data.generate_batch()
+            for batch in range(int(config.train_data.size/batch_size)):
+                batchX, batchY, _ = config.train_data.generate_batch()
                 session.run(optimizer, feed_dict={x: batchX, ytrue: batchY})
                 if epoch % 10 == 0 or epoch == 1:
                   acc, loss = session.run([accuracy, loss_op], feed_dict={x: batchX, ytrue: batchY})                
@@ -68,25 +80,30 @@ def train(data):
                 #print("Epoch:", (epoch + 1), "cost =", "{:.5f}".format(avg_cost))
 
 
-            save_path = saver.save(session, os.path.join(config.MODEL_DIR, "model" + str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
+            save_path = saver.save(session, os.path.join(config.save_dir, "model" + str(batch_size) + "_" + str(num_epochs) + ".ckpt"))
         print("Model saved in path: %s" % save_path)
+    return save_path
 
 
-def test(data):
-    x = tf.placeholder(tf.float32, shape = [None, config.IMAGE_SIZE, config.IMAGE_SIZE, 1], name = 'x')
-    ytrue = tf.placeholder(tf.float32, shape = [None, config.IMAGE_SIZE, config.IMAGE_SIZE, 2], name = 'ytrue')
+def test(config, model_name):
+    img_size = config.test_data.image_size
+    batch_size = config.test_data.batch_size
+    num_epochs = config.test_data.num_epochs
+
+    x = tf.placeholder(tf.float32, shape = [None, img_size, img_size, 1], name = 'x')
+    ytrue = tf.placeholder(tf.float32, shape = [None, img_size, img_size, 2], name = 'ytrue')
 
     saver = tf.train.Saver()
     with tf.Session() as session:
-        saver.restore(session, os.path.join(config.MODEL_DIR, "model" + str(config.BATCH_SIZE) + "_" + str(config.NUM_EPOCHS) + ".ckpt"))
+        saver.restore(session, os.path.join(config.save_dir, "model" + str(batch_size) + "_" + str(num_epochs) + ".ckpt"))
         avg_cost = 0
-        total_batch = int(data.size/config.BATCH_SIZE)
+        total_batch = int(config.test_data.size/batch_size)
         for _ in range(total_batch):
-            batchX, batchY, filelist = data.generate_batch() 
+            batchX, batchY, filelist = config.test_data.generate_batch() 
             print(batchX)
             print(batchY)   
             output = session.run(getColorization(x), feed_dict = {x: batchX, ytrue: batchY})*128
-            image = np.zeros([config.IMAGE_SIZE, config.IMAGE_SIZE, 3])
+            image = np.zeros([img_size, img_size, 3])
             image[:,:,0]=batchX[0][:,:,0]
             image[:,:,1:]=output[0]
             image = color.lab2rgb(image)
