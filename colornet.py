@@ -47,15 +47,17 @@ def batch_create(src):
     return np.array(input), np.array(output)
 
 def run(config):
-    training_src = 'Training/'
+    training_src = config.train_dir
+    batch_size = config.batchsize
+    num_epochs = config.num_epochs
     nnmodel = createModel()
     print("Model created")
     input_training, output_training = batch_create(training_src)
-    nnmodel.fit(x=input_training, y= output_training, batch_size=config.batch_size, epochs=config.num_epochs, verbose=1)
-    nnmodel.evaluate(input_training, output_training, batch_size=config.batch_size)
+    nnmodel.fit(x=input_training, y= output_training, batch_size=batch_size, epochs=num_epochs, verbose=1)
+    nnmodel.evaluate(input_training, output_training, batch_size=batch_size)
     print("Training finished")
 
-    testing_src = 'Testing/'
+    testing_src = config.test_dir
     testing, _ = batch_create(testing_src)
     
     output = nnmodel.predict(testing)

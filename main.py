@@ -13,7 +13,7 @@ import colornet
 FLAGS = None
 
 def main(_):
-    colornet.run(config.Config)
+    colornet.run(config.Config(FLAGS.save_dir, FLAGS.colorize_batch_size, FLAGS.num_epochs))
 
 
 if __name__ == "__main__":
