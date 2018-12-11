@@ -6,10 +6,12 @@ from keras.models import Sequential
 from keras.models import model_from_json
 from keras.preprocessing.image import img_to_array, load_img
 from skimage.color import lab2rgb, rgb2lab
+import skimage.exposure
 from skimage import io
 import os
 import config
 import sys
+import classifier
 
 def createModel():
     model = Sequential()
@@ -28,22 +30,24 @@ def createModel():
     model.compile(optimizer='rmsprop', loss="mse")
     return model
     
-def batch_create(src):
+def batch_create(src, image_size):
     INPUT_DIR = src
     input = []
     output = []
     print(src)
+    i = 0
     for filename in os.listdir(INPUT_DIR):
         filesrc = os.path.join(INPUT_DIR, filename)
-        image = img_to_array(load_img(filesrc, target_size=(200,200))) / 255
+        image = img_to_array(load_img(filesrc, target_size=(image_size,image_size))) / 255
         lab_image = rgb2lab(image)
         lab_image_norm = (lab_image + [0, 128, 128]) / [100, 255, 255]
         X = lab_image_norm[:,:,0] #bw image
         Y = lab_image_norm[:,:,1:] #color image
-        X = X.reshape(X.shape[0], X.shape[1], 1)
-        Y = Y.reshape(Y.shape[0], Y.shape[1], 2)
+        X = X.reshape( X.shape[0], X.shape[1], 1)
+        Y = Y.reshape( Y.shape[0], Y.shape[1], 2)
         input.append(X)
         output.append(Y)
+        i += 1
  
     return np.array(input), np.array(output)
 
@@ -52,12 +56,16 @@ def train(config):
     training_src = config.train_dir
     batch_size = config.batchsize
     num_epochs = config.num_epochs
+    image_size = config.image_size
 
     #create model
     nnmodel = createModel()
     print("Model created")
     #get training and input data
-    input_training, output_training = batch_create(training_src)
+    #classifications = classifier.classify('D:\COMP380\Color\Model', "final_graph.pb", training_src)
+    input_training, output_training = batch_create(training_src, image_size)
+    print(input_training.shape)
+    print(output_training.shape)
     nnmodel.fit(x=input_training, y= output_training, batch_size=batch_size, epochs=num_epochs, verbose=1)
     nnmodel.evaluate(input_training, output_training, batch_size=batch_size)
     print("Training finished")
@@ -75,37 +83,43 @@ def train(config):
     print("Saved model to disk")
 
 def load(config):
+    """
     # load json and create model
     model_json_path = os.path.join(config.save_dir, config.model_name + ".json")
     json_file = open(model_json_path, 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
+    """
 
     # load weights into new model
+    loaded_model = createModel()
     model_hdf5_path = os.path.join(config.save_dir,config.model_name + ".h5") 
     loaded_model.load_weights(model_hdf5_path)
     print("Loaded model from drive")
     return loaded_model
 
 def test(config):
+    image_size = config.image_size
     nnmodel = load(config)
     #get testing data
     testing_src = config.test_dir
-    testing, _ = batch_create(testing_src)
+    testing, _ = batch_create(testing_src, image_size)
     #test model
     output = nnmodel.predict(testing)
     print("Testing finished")
-    cur = np.zeros((200, 200, 3))
+    cur = np.zeros((image_size, image_size, 3))
     
     #save all results
+    print("Saving Results")
     for i in range(len(output)):
         #convert from array
         cur[:,:,0] = testing[i][:,:,0]
         cur[:,:,1:] = output[i]
         cur = (cur * [100, 255, 255]) - [0, 128, 128]
         rgb_image = lab2rgb(cur)
-
+        rgb_image = skimage.exposure.adjust_gamma(rgb_image, 1, 1)        
         #save result
         result_image_path = os.path.join(config.result_dir, "result" + str(i+1) + ".png")
         io.imsave(result_image_path, rgb_image)
+        print("Saved result %d to: %s", i, result_image_path)

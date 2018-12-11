@@ -5,14 +5,13 @@ import os
 
 class Data():
 
-    def __init__(self, dir, img_size, batch_size, num_epochs):
+    def __init__(self, dir, img_size, batch_size):
         self.dir_path = dir
         self.filelist = os.listdir(self.dir_path)
         self.batch_size = batch_size
         self.image_size = img_size
         self.size = len(self.filelist)
         self.data_index = 0
-        self.num_epochs = num_epochs
 
     #Loads images resized according to initialization
     def get_resized_image(self, filename):

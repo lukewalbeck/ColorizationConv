@@ -14,7 +14,7 @@ FLAGS = None
 
 def main(_):
     #parse arguments from command line
-    cf = config.Config([FLAGS.data_dir, FLAGS.save_dir, FLAGS.batch_size, FLAGS.num_epochs, FLAGS.model_name])
+    cf = config.Config([FLAGS.data_dir, FLAGS.save_dir, FLAGS.batch_size, FLAGS.num_epochs, FLAGS.model_name, FLAGS.image_size])
 
     # Verify can run
     if(FLAGS.train_net and cf.train_dir == None):
@@ -82,6 +82,12 @@ if __name__ == "__main__":
         default=False,
         help='Test model on testing samples'
     ) 
+    parser.add_argument(
+        '--image_size',
+        type=int,
+        default=400,
+        help='Size of output images.'
+    )
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
 

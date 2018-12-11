@@ -36,6 +36,7 @@ class Config():
         self.batchsize = flagsar[2]
         self.num_epochs = flagsar[3]
         self.model_name = flagsar[4]
+        self.image_size = flagsar[5]
 
         #Look at files for testing / training folders
         filelist = os.listdir(self.data_dir)
