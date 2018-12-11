@@ -3,11 +3,13 @@ import matplotlib
 import numpy as np
 from keras.layers import Conv2D, UpSampling2D, InputLayer
 from keras.models import Sequential
+from keras.models import model_from_json
 from keras.preprocessing.image import img_to_array, load_img
 from skimage.color import lab2rgb, rgb2lab
 from skimage import io
 import os
 import config
+import sys
 
 def createModel():
     model = Sequential()
@@ -26,8 +28,6 @@ def createModel():
     model.compile(optimizer='rmsprop', loss="mse")
     return model
     
-
-
 def batch_create(src):
     INPUT_DIR = src
     input = []
@@ -47,28 +47,65 @@ def batch_create(src):
  
     return np.array(input), np.array(output)
 
-def run(config):
+def train(config):
+    #net variables
     training_src = config.train_dir
     batch_size = config.batchsize
     num_epochs = config.num_epochs
+
+    #create model
     nnmodel = createModel()
     print("Model created")
+    #get training and input data
     input_training, output_training = batch_create(training_src)
     nnmodel.fit(x=input_training, y= output_training, batch_size=batch_size, epochs=num_epochs, verbose=1)
     nnmodel.evaluate(input_training, output_training, batch_size=batch_size)
     print("Training finished")
 
+    # serialize model to JSON
+    model_json_path = os.path.join(config.save_dir, config.model_name + ".json")
+    model_json = nnmodel.to_json()
+
+    with open(model_json_path, "w") as json_file:
+        json_file.write(model_json)
+
+    # serialize weights to HDF5
+    model_hdf5_path = os.path.join(config.save_dir,config.model_name + ".h5")
+    nnmodel.save_weights(model_hdf5_path)
+    print("Saved model to disk")
+
+def load(config):
+    # load json and create model
+    model_json_path = os.path.join(config.save_dir, config.model_name + ".json")
+    json_file = open(model_json_path, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+
+    # load weights into new model
+    model_hdf5_path = os.path.join(config.save_dir,config.model_name + ".h5") 
+    loaded_model.load_weights(model_hdf5_path)
+    print("Loaded model from drive")
+    return loaded_model
+
+def test(config):
+    nnmodel = load(config)
+    #get testing data
     testing_src = config.test_dir
     testing, _ = batch_create(testing_src)
-    
+    #test model
     output = nnmodel.predict(testing)
     print("Testing finished")
     cur = np.zeros((200, 200, 3))
     
+    #save all results
     for i in range(len(output)):
+        #convert from array
         cur[:,:,0] = testing[i][:,:,0]
         cur[:,:,1:] = output[i]
         cur = (cur * [100, 255, 255]) - [0, 128, 128]
         rgb_image = lab2rgb(cur)
-        result_src = 'results/'
-        io.imsave(os.path.join(result_src, "result" + str(i) + ".png"), rgb_image)
+
+        #save result
+        result_image_path = os.path.join(config.result_dir, "result" + str(i+1) + ".png")
+        io.imsave(result_image_path, rgb_image)

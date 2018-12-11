@@ -35,11 +35,13 @@ class Config():
         self.save_dir = flagsar[1]        #Directory to save files, this is where models will be
         self.batchsize = flagsar[2]
         self.num_epochs = flagsar[3]
+        self.model_name = flagsar[4]
 
         #Look at files for testing / training folders
         filelist = os.listdir(self.data_dir)
         self.test_dir = None
         self.train_dir = None
+        self.result_dir = None
 
         #check if directory contains training data
         if "Training" in filelist:
@@ -47,6 +49,8 @@ class Config():
          #check if directory contains testing data
         if "Testing" in filelist:
             self.test_dir = os.path.join(self.data_dir,"Testing")
+        if "Results" in filelist:
+            self.result_dir = os.path.join(self.data_dir,"Results")
             
     
 
