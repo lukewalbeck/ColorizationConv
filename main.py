@@ -8,27 +8,13 @@ import tensorflow as tf
 import colornet
 import config 
 import classifier
+import colornet
 
 FLAGS = None
 
 def main(_):
-    #[data_dir, save_dir, batch_size, num_epochs]
-    #config.set_cofig([FLAGS.test_dir, FLAGS.train_dir, FLAGS.model_dir, FLAGS.num_epochs, FLAGS.batch_size, FLAGS.classify_dir, FLAGS.data_dir])
-    #train_data = data.DATA(config.TRAIN_DIR)
-    batch_sizes = [FLAGS.classify_batch_size, FLAGS.colorize_batch_size]
-    colorization_config = config.Config([FLAGS.data_dir, FLAGS.model_dir, batch_sizes, FLAGS.num_epochs])
+    colornet.run(config.Config)
 
-    #classify 
-    classifier.test(colorization_config, "final_graph.pb")
-    print("\n\nFinished Classifying\n\n")
-
-    #train colorization
-    colornet.train(colorization_config)
-    print("\n\nFinished Training\n\n")
-
-    #test colorization
-    #colornet.test(test_data)
-    print("Image Reconstruction Done")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
