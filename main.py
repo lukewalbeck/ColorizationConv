@@ -14,7 +14,7 @@ FLAGS = None
 
 def main(_):
     #parse arguments from command line
-    cf = config.Config([FLAGS.data_dir, FLAGS.save_dir, FLAGS.batch_size, FLAGS.num_epochs])
+    cf = config.Config([FLAGS.data_dir, FLAGS.save_dir, FLAGS.batch_size, FLAGS.num_epochs, FLAGS.model_name])
 
     # Verify can run
     if(FLAGS.train_net and cf.train_dir == None):
@@ -45,6 +45,12 @@ if __name__ == "__main__":
         type=str,
         default=os.getcwd(),
         help='Directory to load images from, must contain a \'Training\' and \'Testing\' folder for training and testing data.'
+    ) 
+    parser.add_argument(
+        '--save_dir',
+        type=str,
+        default=os.getcwd(),
+        help='Directory to save model.'
     ) 
     parser.add_argument(
         '--batch_size',
