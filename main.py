@@ -17,18 +17,30 @@ def main(_):
     cf = config.Config([FLAGS.data_dir, FLAGS.save_dir, FLAGS.batch_size, FLAGS.num_epochs, FLAGS.model_name, FLAGS.image_size])
 
     # Verify can run
-    if(FLAGS.train_net and cf.train_dir == None):
-        print("Error: No training data")
-        sys.exit(-1)
-    if(FLAGS.test_net and cf.test_dir == None):
-        print("Error: No testing data")
-        sys.exit(-1)
+    if(FLAGS.train_net or FLAGS.test_net):
+        if(cf.data_dir == None):
+            print("Error: No data directory specified.")
+            sys.exit(-1)
+    
+    
 
     # Run net
     if(FLAGS.train_net):
+        #verify can train
+        if(cf.train_dir == None):
+            print("Error: No training data found in directory:", cf.data_dir) 
+            sys.exit(-1)
+
+        #train
         colornet.train(cf)
 
     if(FLAGS.test_net):
+        #verify can test
+        if(cf.test_dir == None):
+            print("Error: No testing data found in directory:", cf.data_dir)
+            sys.exit(-1)
+
+        #test
         colornet.test(cf)
 
 
@@ -49,9 +61,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--save_dir',
         type=str,
-        default=os.getcwd(),
+        default=os.path.join(os.getcwd(), "Color_Model"),
         help='Directory to save model.'
-    ) 
+    )
     parser.add_argument(
         '--batch_size',
         type=int,

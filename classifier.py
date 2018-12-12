@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.math
 import config
 import os
 import numpy as np
@@ -17,6 +18,9 @@ def classify(model_dir,model_name, classify_dir):
     if(classify_dir == None or classify_data == None):
       print("Error: No training data to classify")
       sys.exit(-1)
+
+    #load labels exist
+    labels = load_labels(os.path.join(model_dir, "labels.txt"))
     #load graph
     graph = tf.Graph()
     graph_def = tf.GraphDef()
@@ -35,9 +39,23 @@ def classify(model_dir,model_name, classify_dir):
             #print(filelist) 
             output = session.run(graph.get_operation_by_name("import/final_result").outputs[0], 
                 feed_dict = {graph.get_operation_by_name("import/Placeholder").outputs[0]: batchX})
-            outputs.append(output)
-            #print(output)
+            outputs.append(labels[find_label(output, labels)])
     return np.array(outputs)
+
+def load_labels(label_file):
+    label = []
+    all_labels = tf.gfile.GFile(label_file).readlines()
+    for l in all_labels:
+        label.append(l.rstrip())
+    return label
+    
+def find_label(output, labels):
+    array = output[0]
+    index = np.argmax(array)
+    return index
+   
+       
+            
 
 """
 if __name__ == "__main__":

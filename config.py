@@ -25,8 +25,10 @@ def set_cofig(FLAGS):
     TRAIN_DIR = FLAGS[1]
     TEST_DIR = FLAGS[0]
 """
-DEFAULT_CLASSIFY_IMAGE_SIZE = 299
-DEFAULT_COLORIZATION_IMAGE_SIZE = 320
+DEFAULT_DATA_DIRS = ["Colorize_Data","ColorData"]
+DEFAULT_TRAINING_DIRS = ["Training", "TrainingData", "Training_Data"]
+DEFAULT_TESTING_DIRS = ["Testing", "TestingData", "Testing_Data"]
+DEFAULT_RESULT_DIRS = ["Results", "Colorize_Results", "Output", "Outputs"]
 
 class Config():
 
@@ -38,20 +40,49 @@ class Config():
         self.model_name = flagsar[4]
         self.image_size = flagsar[5]
 
-        #Look at files for testing / training folders
-        filelist = os.listdir(self.data_dir)
-        self.test_dir = None
-        self.train_dir = None
-        self.result_dir = None
+        #Try to find default data dir
+        current_file_list = os.listdir(os.getcwd())
+        for default_dir in DEFAULT_DATA_DIRS:
+            if default_dir in current_file_list:
+                self.data_dir = os.path.join( os.getcwd(), default_dir)
+                break
+            if default_dir.lower() in current_file_list:
+                self.data_dir = os.path.join( os.getcwd(), default_dir.lower())
+                break
 
-        #check if directory contains training data
-        if "Training" in filelist:
-            self.train_dir = os.path.join(self.data_dir,"Training")
-         #check if directory contains testing data
-        if "Testing" in filelist:
-            self.test_dir = os.path.join(self.data_dir,"Testing")
-        if "Results" in filelist:
-            self.result_dir = os.path.join(self.data_dir,"Results")
+        #Look at files for required folders
+        if(self.data_dir != None):
+        
+            filelist = os.listdir(self.data_dir)
+            self.test_dir = None
+            self.train_dir = None
+            self.result_dir = None
+
+            #check if directory contains training data
+            for training_dir in DEFAULT_TESTING_DIRS:
+                if training_dir in filelist:
+                    self.train_dir = os.path.join(self.data_dir, training_dir)
+                    break
+                if training_dir.lower() in filelist:
+                    self.train_dir = os.path.join(self.data_dir, training_dir.lower())
+                    break
+            #check if directory contains testing data
+            for testing_dir in DEFAULT_TESTING_DIRS:
+                if testing_dir in filelist:
+                    self.test_dir = os.path.join(self.data_dir,testing_dir)
+                    break
+                if testing_dir.lower() in filelist:
+                    self.test_dir = os.path.join(self.data_dir,testing_dir.lower())
+                    break
+            #check for results directory
+            for output_dir in DEFAULT_RESULT_DIRS:
+                if output_dir in filelist:
+                    self.result_dir = os.path.join(self.data_dir, output_dir)
+                    break
+                if output_dir.lower() in filelist:
+                    self.result_dir = os.path.join(self.data_dir, output_dir.lower())
+                    break
+
             
     
 
