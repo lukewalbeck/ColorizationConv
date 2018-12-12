@@ -5,6 +5,7 @@ from keras.layers import Conv2D, UpSampling2D, InputLayer
 from keras.models import Sequential
 from keras.models import model_from_json
 from keras.preprocessing.image import img_to_array, load_img
+from keras.optimizers import Adadelta
 from skimage.color import lab2rgb, rgb2lab
 import skimage.exposure
 from skimage import io
@@ -12,6 +13,7 @@ import os
 import config
 import sys
 import classifier
+
 
 def createModel():
     model = Sequential()
@@ -27,11 +29,12 @@ def createModel():
     model.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
     model.add(UpSampling2D((2, 2)))
     model.add(Conv2D(2, (3,3), activation='tanh', padding='same'))
-    model.compile(optimizer='rmsprop', loss="mse")
+    model.compile(optimizer=Adadelta(), loss="mse")
     return model
     
 def batch_create(src, image_size):
     INPUT_DIR = src
+   
     input = []
     output = []
     print(src)
